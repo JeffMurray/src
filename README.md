@@ -1,11 +1,5 @@
-package at_rest has functions to:
+A place for some open source google go packages I am working on.
 
-* easilly encrypt and decrypt byte arrays
-* generate new strong keys and encode and decode in base64
-* automatically encrypt / decrypt small configuration files
+Details are in the individual packages.
 
-The source code has other details.
-
-The encryption algorithums were copied frome here:
-
-https://github.com/gtank/cryptopasta
+package at_rest has some cross platform, non-expert friendly functions to encrypt and decrypt byte arrays, and small configuration files.
