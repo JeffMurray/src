@@ -5,7 +5,9 @@ import (
 	"math/rand"
 	"time"
 )
-
+//generates a 6 char unique id that is handy for linking errors to lines of code
+//go install newid ---> will make newid.exe which spits out a 6 digit random string
+//Handy for use in errs package. 
 func newid() string {
 	return make_key(6)
 }
