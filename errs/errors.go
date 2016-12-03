@@ -96,10 +96,6 @@ func (se *SysError) Error() string {
 	}
 	return rval
 }
-//all the jucy error info
-func (se *SysError) String() string {
-	return string(se.ToPrettyBytes())
-}
 //from a json encoded byte array
 func SysErrorFromBytes(key_bytes []byte) (*SysError, error) {
 	var sys_err SysError
@@ -111,7 +107,7 @@ func (se *SysError) ToBytes() []byte {
 	bytes,_ := json.Marshal(*se)
 	return bytes
 }
-//to a moore readable json encoded byte array.
+//to a more readable json encoded byte array.
 func (se *SysError) ToPrettyBytes() []byte {
 	bytes, _ := json.MarshalIndent(*se, "", "    ")
 	return bytes
