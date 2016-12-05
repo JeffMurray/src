@@ -71,7 +71,7 @@ func TestEzjson(t *testing.T) {
 	}
 	_, err2 := GetInt(test_specs,"l5h39n9cqo6cz5sb1:1", "Doc","KeySpecs","Fantastic Int","IntRules")
 	if err2 == nil {
-		t.Error( err2.String() )
+		t.Error( err2.Error() )
 	} else {
 		if err2.Token != "pjex5i" {
 			t.Error(fmt.Sprintf("%v", err2))
@@ -117,7 +117,7 @@ func TestEzjson(t *testing.T) {
 	test_insert := map[string]interface{}{}
 	test_ins_err := setInterface(test_insert, "yo", "yo_field")
 	if test_ins_err != nil {
-		t.Error(test_ins_err.String())
+		t.Error(test_ins_err.Error())
 	}
 	test_str, _ := GetString(test_insert, "yo_field")
 	if test_str != "yo" {
@@ -125,19 +125,19 @@ func TestEzjson(t *testing.T) {
 	}
 	test_ins_err = SetString(test_insert, "we dat", "yo_field", "whodat")
 	if test_ins_err.Token != "j3tprh" {
-		t.Error(test_ins_err.String())
+		t.Error(test_ins_err.Error())
 	}
 	test_ins_err = SetString(test_insert, "we dat", "testdat", "whodat")
 	if test_ins_err!= nil {		
-		t.Error(test_ins_err.String())
+		t.Error(test_ins_err.Error())
 	}
 	test_ins_str, test_ins_str_error := GetString(test_insert, "testdat","whodat")
 	if test_ins_str != "we dat" {
-		t.Error(test_ins_str_error.String())
+		t.Error(test_ins_str_error.Error())
 	}
 	set_int64_err := SetInt64(test_insert, 1255353618542527051, "testdat", "countdat")
 	if set_int64_err!= nil {
-		t.Error(set_int64_err.String())
+		t.Error(set_int64_err.Error())
 	}
 	test_int64, _ := GetInt64(test_insert, "testdat", "countdat")
 	if test_int64 != 1255353618542527051 {
@@ -145,7 +145,7 @@ func TestEzjson(t *testing.T) {
 	}
 	set_int_err := SetInt(test_insert, 1255, "testdat", "countdat")
 	if set_int_err!= nil {
-		t.Error(set_int_err.String())
+		t.Error(set_int_err.Error())
 	}
 	test_int, _ := GetInt(test_insert, "testdat", "countdat")
 	if test_int != 1255 {

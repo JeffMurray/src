@@ -9,68 +9,77 @@ import (
 
 //package ezjson has get and set functions that make woring with 
 //the native google go map[string]interface{} scheme easier
-func Decode(json_str string) ( map[string]interface{}, *errs.SysError ) {
+func Decode(json_str string) ( map[string]interface{}, *errs.SysErr ) {
 	m := map[string]interface{}{}
     d := json.NewDecoder(bytes.NewBuffer([]byte(json_str)))
     d.UseNumber() //<----
 	err := d.Decode(&m)
-	return m, errs.IfSysError(err, "ii6upj", "ezjson.go", "")
+	if err != nil {
+		return m, errs.NewSysErr(err.Error(), "ii6upj", json_str)
+	}
+	return m, nil
 }
-func Byteify(json_map map[string]interface{}, pretty bool) ([]byte, *errs.SysError) {
+func Byteify(json_map map[string]interface{}, pretty bool) ([]byte, *errs.SysErr) {
 	if !pretty {
 		b, err := json.Marshal(json_map)
-		return b, errs.IfSysError(err, "y9xl0j", "ezjson.go", "")
+		if err != nil {
+			return b, errs.NewSysErr(err.Error(), "y9xl0j", "")
+		}
+		return b, nil
 	} else {
 		b, err := json.MarshalIndent(json_map, "", "\t")
-		return b, errs.IfSysError(err, "awuw6r", "ezjson.go", "")
+		if err != nil {
+			return b, errs.NewSysErr(err.Error(), "awuw6r", "")
+		}
+		return b, nil
 	}
 }
 func IsNotExistErr(token string) bool {
 	return token == "d2v0h1" || token == "gfj3n4"
 }
-func GetMap(j_map map[string]interface{}, path ...string) (map[string]interface{}, *errs.ClientError) {
+func GetMap(j_map map[string]interface{}, path ...string) (map[string]interface{}, *errs.ClnErr) {
 	next := j_map
 	ok := true
-	for i := 0; i < len(path); i++ {
-		if next[path[i]] == nil {
-			return next, errs.NewClientError("d2v0h1",path[i] + " does not exist")
+	for _, p:= range  path {
+		if next[p] == nil {
+			return next, errs.NewClnErr("d2v0h1",fmt.Sprintf("%s does not exist",p))
 		}
-		next, ok = next[path[i]].(map[string]interface{})
+		next, ok = next[p].(map[string]interface{})
 		if !ok {
-			return next, errs.NewClientError("j3tprh",path[i] + " is not a map")
+			return next, errs.NewClnErr("j3tprh",fmt.Sprintf("%s not a map",p))
 		}
 	}
 	return next, nil
 }
-func GetInterface(j_map map[string]interface{}, path ...string)(interface{}, *errs.ClientError){
+func GetInterface(j_map map[string]interface{}, path ...string)(interface{}, *errs.ClnErr){
 	if len(path) == 0 {
-		return "", errs.NewClientError("v6v3ai","path is required")
+		return "", errs.NewClnErr("v6v3ai","Path is required")
 	}
 	doc, err := GetMap(j_map, path[0:len(path)-1]...)
 	if err != nil {
-		return "", err
+		return "", err.Traced("tmt0h6","Getting interface.")
 	}
 	if doc[path[len(path)-1]] == nil {	
-		return "", errs.NewClientError("gfj3n4",path[len(path)-1] + " does not exist.")
+		return "", errs.NewClnErr("gfj3n4", fmt.Sprintf("%s does not exist.",path[len(path)-1]))
 	}
 	return doc[path[len(path)-1]], nil
 }
-func setInterface(j_map map[string]interface{}, val interface{}, path ...string)(*errs.ClientError){
+func setInterface(j_map map[string]interface{}, val interface{}, path ...string)(*errs.ClnErr){
 	if len(path) == 0 {
-		return errs.NewClientError("nic0hc","path is required")
+		return errs.NewClnErr("nic0hc","Path is required")
 	}
 	built_path := []string{}
 	last_doc := j_map
-	for i := 0; i < len(path)-1; i++ {
-		built_path = append(built_path, path[i])
+	for _, key := range path {
+		built_path = append(built_path, key)
 		doc, err := GetMap(j_map, path[0:len(path)-1]...)
 		if err != nil {
 			switch err.Token {
 				case "d2v0h1": //Does not exist
-					last_doc[path[i]] = map[string]interface{}{}
-					last_doc = last_doc[path[i]].(map[string]interface{})
+					last_doc[key] = map[string]interface{}{}
+					last_doc = last_doc[key].(map[string]interface{})
 				default:
-					return err.Traced("x62p64",fmt.Sprintf("Key is: %s", path[i]))
+					return err.Traced("x62p64",fmt.Sprintf("Key is: %s", key))
 			}
 		} else {
 			last_doc = doc
@@ -79,14 +88,14 @@ func setInterface(j_map map[string]interface{}, val interface{}, path ...string)
 	last_doc[path[len(path)-1]] = val
 	return nil
 }
-func GetArray(j_map map[string]interface{}, path ...string) ([]interface{}, *errs.ClientError) {
+func GetArray(j_map map[string]interface{}, path ...string) ([]interface{}, *errs.ClnErr) {
 	iface, err := GetInterface(j_map, path...)
 	if err != nil {
-		return []interface{}{}, err
+		return []interface{}{}, err.Traced("y0ezzo","Getting array.")
 	}
 	rval, ok := iface.([]interface{})
 	if !ok {
-		return []interface{}{}, errs.NewClientError("c0dxq4",path[len(path)-1] + " is not an array.")
+		return []interface{}{}, errs.NewClnErr("c0dxq4",path[len(path)-1] + " is not an array.")
 	}
 	return rval, nil	
 }
@@ -117,12 +126,14 @@ func KeysToMap( keys ...string ) map[string]interface{} {
 	}
 	return m
 }
-
-//mainly used for testing so that numbers are json.Number
-func Cycle( doc map[string]interface{} ) ( map[string]interface{}, error ) {
+//Use to make sure numbers are json.Number if you have a raw 
+//(not produced from the json decoder) map you want to use.
+//See ezjson_test
+func Cycle( doc map[string]interface{} ) ( map[string]interface{}, *errs.SysErr ) {
 	bts, err := Byteify( doc, false )
 	if err != nil {
-		return doc, err
+		return doc, err.Traced("c2byil","Cycling")
 	}
-	return Decode(string(bts))
+	rval, e := Decode(string(bts))
+	return rval, errs.TraceSysErrIfErr(e, "c2byil", string(bts))
 }

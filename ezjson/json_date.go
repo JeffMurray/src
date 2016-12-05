@@ -6,25 +6,26 @@ import(
 	"time"
 )
 
-func SetDate(format string, j_map map[string]interface{}, val time.Time, path ...string) (*errs.ClientError) {
+func SetDate(format string, j_map map[string]interface{}, val time.Time, path ...string) *errs.ClnErr {
 	time_format, time_format_err := Str_format_to_go_parse_format(format)
 	if time_format_err != nil {
-		return time_format_err.Traced("a4j4vh","In SetDate")
+		return time_format_err.Traced("a4j4vh","Setting date")
 	}
-	return setInterface(j_map, val.Format(time_format), path...)
+	rval := setInterface(j_map, val.Format(time_format), path...)
+	return errs.TraceClnErrIfErr(rval,"gt76w5","Setting date")
 }
-func GetDate(format string, j_map map[string]interface{}, path ...string) (rval time.Time, e *errs.ClientError) {
+func GetDate(format string, j_map map[string]interface{}, path ...string) (time.Time, *errs.ClnErr) {
 	iface, err := GetInterface(j_map, path...)
 	if err != nil {
-		return time.Now(), err
+		return time.Time{}, err.Traced("nhynro","Getting date")
 	}
 	time_val, time_val_err := Str_to_date(format, iface)
 	if time_val_err != nil {
-		return time.Now(), time_val_err.Traced("j1ogfn", "Key is " + path[len(path)-1])
+		return time.Time{}, time_val_err.Traced("j1ogfn", "Key is " + path[len(path)-1])
 	}
 	return time_val, nil
 }
-func Str_format_to_go_parse_format( format string ) (string, *errs.ClientError) {
+func Str_format_to_go_parse_format( format string ) (string, *errs.ClnErr) {
 	switch format {
         case "ANSIC": return time.ANSIC, nil //"Mon Jan _2 15:04:05 2006"
         case "UnixDate": return time.UnixDate, nil //""Mon Jan _2 15:04:05 MST 2006"
@@ -42,13 +43,13 @@ func Str_format_to_go_parse_format( format string ) (string, *errs.ClientError) 
         case "StampMilli": return time.StampMilli, nil //""Jan _2 15:04:05.000"
         case "StampMicro": return time.StampMicro, nil //""Jan _2 15:04:05.000000"
         case "StampNano": return time.StampNano, nil //""Jan _2 15:04:05.000000000"
-		default: return "Error", errs.NewClientError("hzhdzh", fmt.Sprintf("Unrecognized time format: %s",format))
+		default: return "Error", errs.NewClnErr("hzhdzh", fmt.Sprintf("Unrecognized time format: %s",format))
 	}
 }
-func Str_to_date(format string, date_str_i interface{}) (time.Time, *errs.ClientError) {
+func Str_to_date(format string, date_str_i interface{}) (time.Time, *errs.ClnErr) {
 	date_str, ok := date_str_i.(string)
 	if !ok {
-		return time.Now(), errs.NewClientError("mfmftw","Date is not in a string.")
+		return time.Now(), errs.NewClnErr("mfmftw","Date is not in a string.")
 	}
 	go_format, go_format_err := Str_format_to_go_parse_format(format)
 	if go_format_err != nil {
@@ -56,7 +57,7 @@ func Str_to_date(format string, date_str_i interface{}) (time.Time, *errs.Client
 	}
 	rval, rval_err := time.Parse(go_format, date_str)
 	if rval_err != nil {
-		return time.Now(), errs.NewClientError("err2nc",fmt.Sprintf("%s cannot parse as %s",date_str,go_format))
+		return time.Now(), errs.NewClnErr("err2nc",fmt.Sprintf("%s cannot parse as %s",date_str,go_format))
 	}
 	return rval, nil
 }

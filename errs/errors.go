@@ -3,112 +3,137 @@ package errs
 import (
 	"time"
 	"encoding/json"
-	"fmt"
+	//"reflect"
+	//"fmt"
 )
 
 //package errs formalizes the seperation of system information 
 //and user information when handeling errors durng code execution.
-//use NewClientError for expected client messages like "Last name is required."
-//And NewSysError for system errors.  SysError.Error() reports a state free error
-//location token.  Use SysError.String() to get the state info internally.
-type SysError struct {
+//use NewClnErr for expected client messages like "Last name is required."
+//And NewSysErr for system errors.  SysErr.Error() reports a state free error
+//location token.
+type ClnErr struct {
+	Token string
+	Message string
+	Time time.Time
+	Trace[]*ClnErr
+}
+type SysErr struct {
 	Text string
 	Token string
-	FileName string
 	Args string
 	Time time.Time
-	Trace []SourceInfo
+	Trace []*SrcInfo
 }
-type SourceInfo struct{
+type SrcInfo struct{
 	Token string
-	FileName string	
 	Args string
 }
-type ClientError struct {
-	Token string
-	message string
-	TraceInfo []ClientError
+func NewEOFErr() *ClnErr {
+	return NewClnErr("t0t84g","EOF")
 }
-func (ce *ClientError) Error() string {
-	rval := ce.message
-	for i:= 0; i < len(ce.TraceInfo); i++ {
-		rval = rval + fmt.Sprintf("-> %s : %s", ce.TraceInfo[i].Token, ce.TraceInfo[i].message, )
+func (ce *ClnErr) IsEOF() bool {
+	return ce.Token == "t0t84g"
+}
+func NewClnErr(token, message string) *ClnErr {
+	return &ClnErr{token, message, time.Now(), []*ClnErr{}}
+}
+func (ce *ClnErr) Error() string {
+	return string(ce.ToPrettyBytes())
+}
+func (ce *ClnErr) ToSysErr(text, token, args string) *SysErr {
+	se := NewSysErr(text, token, args)
+	se.Traced(ce.Token,ce.Message)
+	for _, ti := range ce.Trace {
+		se.Traced(ti.Token,ti.Message)
 	}
-	return rval
+	return se
 }
-func IfSysError(err error, token, file_name, args string) *SysError {
-	if err == nil {
-		return nil
+//use to trace errors up the stack as errors get re-thrown
+func (ce *ClnErr)Traced(token, message string) *ClnErr {
+	ce.Trace = append(ce.Trace, NewClnErr(token, message))
+	return ce
+}
+//helper func to add trace infor in the case it is an error
+func TraceClnErrIfErr(err *ClnErr, token, message string) *ClnErr {
+	if err != nil {
+		return err.Traced(token, message)
 	}
-	return NewSysError(err.Error(), token, file_name, args) 
+	return nil
 }
-func NewClientError(token string, message string) *ClientError {
-	return &ClientError{token, message, nil}
+//from a json encoded byte array
+func ClnErrFromBytes(json_bytes []byte) (*ClnErr, error) {
+	var ce ClnErr
+	err := json.Unmarshal(json_bytes, &ce)
+	return &ce, err
+}
+//to a packed json encoded byte array
+func (ce *ClnErr) ToBytes() []byte {
+	bytes,_ := json.Marshal(*ce)
+	return bytes
+}
+//to a more readable json encoded byte array.
+func (ce *ClnErr) ToPrettyBytes() []byte {
+	bytes, _ := json.MarshalIndent(*ce, "", "    ")
+	return bytes
 }
 //do a few mundan things that remotely might return errors and are not conditional on ech other
 //then chek for one at the same time
-func CheckErrors(errs_to_check ...*ClientError) *ClientError {
-	for i := 0; i < len(errs_to_check); i++ {
-		if errs_to_check[i] != nil {
-			return errs_to_check[i]
+func CheckErrors(errs_to_check ...*ClnErr) *ClnErr {
+	for _, err := range errs_to_check {
+		if err != nil {
+			return err
 		}
 	}
 	return nil
 }
-//use to trace errors up the stack
-func (ce *ClientError)Traced(token string, message string) *ClientError {
-	ce.TraceInfo = append(ce.TraceInfo, ClientError{token, message, nil})
-	return ce
-}
-func (ce *ClientError) String() string {
-	return ce.Token + " : " + ce.Error()
-}
 //an easy way to trace errors up the stack and locate them in code using token
-func (se *SysError) Traced(token string, file_name string, args string ) *SysError {
-	se.Trace = append(se.Trace,SourceInfo{token, file_name, args})
+func (se *SysErr) Traced(token string, args string ) *SysErr {
+	se.Trace = append(se.Trace,&SrcInfo{token, args})
 	return se
 }
-func TraceIfError(sys_error *SysError, token string, file_name string, args string) *SysError{
-	if sys_error != nil {
-		return sys_error.Traced(token, file_name, args)
+//helper func to add trace infor in the case it is an arror
+func TraceSysErrIfErr(err *SysErr, token string, args string) *SysErr{
+	if err != nil {
+		return err.Traced(token,args)
 	}
 	return nil
 }
-func NewSysError(text, token, file_name, args string) *SysError {
-	return &SysError{text, token, file_name, 
-					args, time.Now(), make([]SourceInfo,0)}
+func NewSysErr(text, token, args string) *SysErr {
+	//args might be big, just get a snip
+	return &SysErr{text, token,args, time.Now(), []*SrcInfo{}}
 }
 //A state-free client code traceable error
-func (se *SysError) ToClientError(token, messsage string) *ClientError {
-	ce := NewClientError(token, messsage)
+func (se *SysErr) ToClnErr(token, messsage string) *ClnErr {
+	ce := NewClnErr(token, messsage)
 	ce.Traced(se.Token,"Internal system error.")
-	for i := 0; i < len(se.Trace); i++ {
-		ce.Traced(se.Trace[i].Token, "Internal system error.")
+	for  _, t := range se.Trace  {
+		ce.Traced(t.Token, "Internal system error.")
 	}
 	return ce
 }
 //the default behavior is not to give out state info
 //but still be able to locate the line of code (grep is great)
-func (se *SysError) Error() string {
-	rval := "System error. Trace info: " + se.Token
-	for i := 0; i < len(se.Trace); i++ {
-		rval += fmt.Sprintf(", %s", se.Trace[i].Token)
-	}
-	return rval
+func (se *SysErr) Error() string {
+	return se.ToClnErr("w0vfq8","Internal system error.").Error()
+}
+//get all the jucy stuff
+func (se *SysErr) ErrorWithStateInfo() string {
+	return string(se.ToPrettyBytes())
 }
 //from a json encoded byte array
-func SysErrorFromBytes(key_bytes []byte) (*SysError, error) {
-	var sys_err SysError
+func SysErrFromBytes(key_bytes []byte) (*SysErr, error) {
+	var sys_err SysErr
 	err := json.Unmarshal(key_bytes, &sys_err)
 	return &sys_err, err
 }
 //to a packed json encoded byte array
-func (se *SysError) ToBytes() []byte {
+func (se *SysErr) ToBytes() []byte {
 	bytes,_ := json.Marshal(*se)
 	return bytes
 }
 //to a more readable json encoded byte array.
-func (se *SysError) ToPrettyBytes() []byte {
+func (se *SysErr) ToPrettyBytes() []byte {
 	bytes, _ := json.MarshalIndent(*se, "", "    ")
 	return bytes
 }
