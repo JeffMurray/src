@@ -11,8 +11,8 @@ import (
 //the native google go map[string]interface{} scheme easier
 func Decode(json_str string) ( map[string]interface{}, *errs.SysErr ) {
 	m := map[string]interface{}{}
-    d := json.NewDecoder(bytes.NewBuffer([]byte(json_str)))
-    d.UseNumber() //<----
+	d := json.NewDecoder(bytes.NewBuffer([]byte(json_str)))
+	d.UseNumber() //<----
 	err := d.Decode(&m)
 	if err != nil {
 		return m, errs.NewSysErr(err.Error(), "ii6upj", json_str)

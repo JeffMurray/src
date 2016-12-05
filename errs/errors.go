@@ -3,8 +3,6 @@ package errs
 import (
 	"time"
 	"encoding/json"
-	//"reflect"
-	//"fmt"
 )
 
 //package errs formalizes the seperation of system information 
