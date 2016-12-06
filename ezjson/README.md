@@ -2,7 +2,7 @@ The golang json package is great, and its use of reflection to encode and decode
 
 Where it needs a little help, I think, is a more freestyle way to get at the data.
 
-In javascript accessig some known variiable nested deep in wrapper objects is trivial:
+In javascript accessig some known variable nested deep in wrapper objects is trivial:
 
 var key = lib3.apps.darwin.config.access.key;
 
