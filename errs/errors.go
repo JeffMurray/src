@@ -27,11 +27,17 @@ type SrcInfo struct{
 	Token string
 	Args string
 }
-func NewEOFErr() *ClnErr {
+func NewEOFClnErr() *ClnErr {
 	return NewClnErr("t0t84g","EOF")
+}
+func NewEOFSysErr() *SysErr {
+	return NewSysErr("EOF","t0t84g","")
 }
 func (ce *ClnErr) IsEOF() bool {
 	return ce.Token == "t0t84g"
+}
+func (se *SysErr) IsEOF() bool {
+	return se.Token == "t0t84g"
 }
 func NewClnErr(token, message string) *ClnErr {
 	return &ClnErr{token, message, time.Now(), []*ClnErr{}}
